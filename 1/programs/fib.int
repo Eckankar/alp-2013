@@ -1,0 +1,16 @@
+fib(n) [
+    a := 0
+    b := 1
+    z := 0
+    LABEL loop
+    IF n = z THEN end ELSE body
+    LABEL body
+    t := a+b
+    a := b
+    b := t
+    n := n-1
+    z := 0
+    GOTO loop
+    LABEL end
+    RETURN a
+]
