@@ -1,0 +1,97 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath,amssymb,amsfonts}
+
+\title{Advanced Language Processing - Assignment 1}
+\author{Sebastian Paaske Tørholm}
+
+\usepackage{hyperref}
+% Format function name and link to it on Hoogle
+\newcommand{\hoogle}[1]{\href{http://www.haskell.org/hoogle/?hoogle=#1}{\texttt{#1}}}
+
+\begin{document}
+\maketitle
+
+\section{Implementation}
+
+I chose to do my implementation in Haskell, primarily due to easy access to
+parser combinators and ADTs.
+
+\subsection{Syntax tree}
+
+For storing the syntax tree, I make use of Haskell's excellent ADTs. The ADTs
+follow the grammar rather closely. I have chosen to group together all the
+assignment statements to non-memory into one instruction, with the right hand
+side being an "expression", capturing the same cases shown in the grammar. This
+choice seemed natural, and made specifying kill sets quite beautiful.
+
+\subsection{Parser}
+
+For parsing, I use \hoogle{ReadP}. The parser is a fairly straight forward
+parser combinator based parser. More or less every rule from the grammar is
+given its own subparser, so it should be easy to follow. I've chosen to allow
+arbitrary whitespace between tokens, to provide some freedom for formatting.
+Additionally, I've chosen to let instructions not be separated by commas, as
+the commas are unnecessary and don't provide a benefit to readability.
+
+The \texttt{Parser} module provides two functions: 
+
+\begin{description}
+    \item[\texttt{parseFile}] Parses the contents of a file into a syntax tree.
+    \item[\texttt{parseString}] Parses the contents of a string into a syntax tree.
+\end{description}
+
+Any parse errors lead to an undescribed failure result, due to the nature of
+\hoogle{ReadP}.
+
+The parser comes with a unit test, which assures that it parses the fibonacci
+example correctly.
+
+\subsection{Liveness analysis}
+
+Liveness analysis is performed in the module \texttt{Analysis}. The
+function \texttt{liveness} is called on a program, giving a result of type
+\texttt{Liveness}.
+
+A \texttt{Liveness} value contains a list of tuples, each tuple having
+two parts: The function name, and a list of tuples, each containing an
+instruction, its in-set, and its out-set.
+
+\texttt{livenessFun} is called on each function of the program, and does
+precalculation of the successor, gen and kill sets, as well as where each
+label is in the program. This is then fed to \texttt{livenessIter}, which
+performs fixed-point iteration on the in- and out-sets.
+
+Since gen and kill need to be referenced across different lines, arrays are
+used for constant-time access. Sets are stored as sets, giving us the set
+operations we need.
+
+The \texttt{Analysis} module provides two functions:
+
+\begin{description}
+    \item[\texttt{liveness}] Runs liveness analysis on a given program.
+    \item[\texttt{livenessFile}] Parses the contents of a file, and runs liveness analysis on it.
+\end{description}
+
+Manual testing has been done, and the output looks sane.
+
+\section{Example programs}
+Three example programs are attached in the \texttt{programs} folder:
+
+\begin{description}
+    \item[\texttt{fib.int}] The Fibonacci function (Figure 3.3)
+    \item[\texttt{gcd.int}] The GCD function (Exercise 3.1)
+    \item[\texttt{easter.int}] A function for calculating when it'll be easter on a given year.
+\end{description}
+
+\section{Results of liveness analyses}
+
+The results of running the liveness analysis on the example programs can be
+found in the \texttt{results} folder.
+
+\end{document}
+
