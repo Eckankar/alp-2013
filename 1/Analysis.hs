@@ -1,8 +1,8 @@
 module Analysis
---    ( liveness,
---      Liveness()
---    ) where
-where
+    ( liveness
+    , Liveness()
+    , livenessFile
+    ) where
 
 import Intermediate
 import Parser
