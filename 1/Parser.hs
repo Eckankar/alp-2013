@@ -2,10 +2,9 @@
 {-# LANGUAGE TupleSections #-}
 
 module Parser
---  ( parseFile
---  , parseString
---  ) where
-where
+  ( parseFile
+  , parseString
+  ) where
 
 import Intermediate 
 import Control.Monad (ap, MonadPlus(mzero, mplus), liftM)
