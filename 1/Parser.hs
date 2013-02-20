@@ -117,6 +117,8 @@ binop :: ReadP BinOp
 binop = (schar '-' >> return Minus)
     <|> (schar '+' >> return Plus)
     <|> (schar '*' >> return Times)
+    <|> (schar '/' >> return Division)
+    <|> (schar '%' >> return Modulo)
 
 relop :: ReadP RelOp
 relop = (sstring ">=" >> return GreaterEqual)

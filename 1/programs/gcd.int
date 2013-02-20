@@ -1,0 +1,14 @@
+gcd (a, b) [
+    LABEL start
+    IF a < b THEN next ELSE swap
+    LABEL swap
+    t := a
+    a := b
+    b := t
+    LABEL next
+    z := 0
+    b := b % a
+    IF b = z THEN end ELSE start
+    LABEL end
+    RETURN a
+]

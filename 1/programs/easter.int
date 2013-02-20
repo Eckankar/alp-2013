@@ -1,0 +1,29 @@
+easter (y, p) [
+    a := y % 4
+    b := y % 7
+    c := y % 19
+
+    d := c * 19
+    d := d + 15
+    d := d % 30
+
+    e := a * 2
+    t := b * 4
+    e := e + t
+    e := e - d
+    e := e + 34
+    e := e % 7
+
+    t := d + e
+    t := t + 114
+    m := t / 31
+
+    d := t % 31
+    d := d + 1
+
+    M[p] := d
+    t := p + 4
+    M[t] := m
+
+    RETURN p
+]

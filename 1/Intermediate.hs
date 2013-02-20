@@ -9,7 +9,7 @@ data Atom = Var Id | IntVal Int
 
 data UnOp = UMinus
     deriving Eq
-data BinOp = Plus | Minus | Times
+data BinOp = Plus | Minus | Times | Division | Modulo
     deriving Eq
 data RelOp = Less | Greater | Equal | LessEqual | GreaterEqual | NotEqual
     deriving Eq
@@ -41,6 +41,8 @@ instance Show BinOp where
     show Plus = "+"
     show Minus = "-"
     show Times = "*"
+    show Division = "/"
+    show Modulo = "%"
 
 instance Show RelOp where
     show Less = "<"
