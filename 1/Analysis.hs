@@ -5,6 +5,7 @@ module Analysis
 where
 
 import Intermediate
+import Parser
 import qualified Data.Map as M
 import qualified Data.Array as A
 import qualified Data.Set as S
@@ -28,6 +29,10 @@ instance Show Liveness where
                     pad ' ' 20 (show $ S.toList out) ++ " | " ++ "\n"
                 ) "" is ++ line
               line = pad '-' 90 ""
+
+livenessFile :: String -> IO (Maybe Liveness)
+livenessFile filename = do mp <- parseFile filename
+                           return $ fmap liveness mp
 
 liveness :: Program -> Liveness
 liveness = Liveness . map livenessFun
@@ -73,7 +78,7 @@ genSet (Store (Var x) y) = [x, y]
 genSet (Store _ y) = [y]
 genSet (If (x, _, Var y) _ _) = [x, y]
 genSet (If (x, _, _) _ _) = [x]
-genSet (Set _ (FCall _ args)) = args
+genSet (Set _ (FCall _ as)) = as
 genSet (Return x) = [x]
 genSet _ = []
 
