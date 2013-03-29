@@ -75,10 +75,14 @@ varId = do skipSpaces
            return $ i:is
 
 value :: ReadP Value
-value = fmap Fun predicate
+value = (do p <- predicate
+            case p of
+                ("fail",[]) -> return Fail
+                _           -> return $ Fun p)
     <|> fmap Var varId
     <|> fmap Fun list
     <|> (sstring "\\+" >> fmap NegationAsFailure value)
+    <|> (schar '!' >> return Cut)
     <|> (do v1 <- varId
             schar '='
             v2 <- varId

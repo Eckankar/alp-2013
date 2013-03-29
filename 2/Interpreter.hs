@@ -7,7 +7,7 @@ import Parser
 import System.Environment (getArgs)
 import Data.Maybe (catMaybes, fromJust)
 import System.IO (hSetBuffering, BufferMode(..), stdout, stdin)
-import Control.Exception (throw, catch, Exception)
+import Control.Exception (throwIO, try, Exception)
 import Data.Typeable (Typeable)
 import Data.List (intercalate)
 import Control.Monad (void)
@@ -41,14 +41,18 @@ unify (env@(i,bs)) ((a,b):vs) = case (a,b) of
     _ -> Nothing
 
 solve :: [Clause] -> Env -> [Value] -> IO [Env]
---solve _ env gs | trace ("solve\n" ++ show env ++ "\n" ++ show gs ++ "\n") False = undefined
+solve _ env gs | trace ("solve\n" ++ show env ++ "\n" ++ show gs ++ "\n") False = undefined
 solve _ env []               = return [env]
 solve p env (Unify x y : gs) = case unify env [(Var x, Var y)] of
                                     Nothing   -> return []
                                     Just env' -> solve p env' gs
-solve p env (Cut : gs)       = throw $ CutExn $ solve p env gs
+solve p env (Cut : gs)       = do es <- solve p env gs
+                                  throwIO $ CutExn $ return es
 solve _ _   (Fail : _)       = return []
-solve p env (g:gs)           = match g gs env p p `catch` (\ (CutExn es) -> es )
+solve p env (g:gs)           = do v <- try (match g gs env p p)
+                                  case v of
+                                    Left (CutExn es) -> es
+                                    Right es         -> return $ es
 
 printEnv :: Env -> IO ()
 printEnv (_, []) = putStr "yes "
@@ -68,7 +72,7 @@ simplifyEnv (n, ss) = (n, simplifyEnv' ss)
           simplifyValue v = v                  
 
 match :: Value -> [Value] -> Env -> [Clause] -> Program -> IO [Env]
---match g gs (env) (Clause l r : cs) p | trace ("match " ++ show g ++ " - " ++ show l ++ " - (" ++ show env ++ ")") False = undefined
+match g gs (env) (Clause l r : cs) p | trace ("match " ++ show g ++ " - " ++ show l ++ " - (" ++ show env ++ ")") False = undefined
 match _ _ _ [] _      = return []
 match g gs (env@(i,ss)) (Clause l r : cs) p =
     do let (l1, env1@(i',_)) = rename [Fun l] (i,[])
@@ -92,17 +96,18 @@ rename (Fun (n, vs) : xs) env =
     let (xs', env')  = rename xs env
         (vs', env'') = rename vs env'
     in (Fun (n, vs') : xs', env'')
-rename (_:xs) env = rename xs env
+rename (x:xs) env = let (xs', env') = rename xs env in (x : xs', env')
 
+-- Converts negation as failure to cuts. (pp138)
 nafToCut :: Int -> [Clause] -> [Clause]
 nafToCut _ [] = []
-nafToCut i (Clause l r : cs) =
+nafToCut i (Clause (n,ps) r : cs) =
     let (i', nafCs, r') = deNaf i [] r []
-    in Clause l r' : nafToCut i' (nafCs ++ cs)
+    in Clause (n,ps) r' : nafToCut i' (nafCs ++ cs)
         where deNaf j r' [] cs' = (j, cs', r')
               deNaf j r' (NegationAsFailure v : vs) cs' =
                     let genId = "#naf_" ++ show j
-                    in deNaf (j+1) (r' ++ [Fun (genId, [])]) vs (cs' ++ [Clause (genId, []) [v, Cut, Fail], Clause (genId, []) []])
+                    in deNaf (j+1) (r' ++ [Fun (genId, ps)]) vs (cs' ++ [Clause (genId, ps) [v, Cut, Fail], Clause (genId, ps) []])
               deNaf j r' (v:vs) cs' = deNaf j (r' ++ [v]) vs cs'
 
 processQuery :: [Clause] -> IO ()
@@ -129,4 +134,5 @@ main = do args <- getArgs
           let clauses = concat $ catMaybes programs
           hSetBuffering stdout NoBuffering
           hSetBuffering stdin NoBuffering
-          void $ sequence $ repeat $ processQuery clauses
+          putStrLn $ show $ nafToCut 0 clauses
+          void $ sequence $ repeat $ processQuery $ nafToCut 0 clauses
