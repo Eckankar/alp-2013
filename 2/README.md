@@ -1,6 +1,9 @@
 # ALP - Assignment 2
 A prolog interpreter written in Haskell
 
+## Author
+Sebastian Paaske Tørholm <sebbe@diku.dk>
+
 ## Required software
 * GHC
 
