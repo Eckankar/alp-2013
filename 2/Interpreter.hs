@@ -145,12 +145,10 @@ displaySolutions :: [Env] -> IO ()
 displaySolutions [] = putStrLn "no"
 displaySolutions (s:ss) =
     do printEnv $ simplifyEnv s
-       case ss of
-            [] -> putChar '\n'
-            _  -> do c <- getLine
-                     case c of
-                         ';':_ -> displaySolutions ss
-                         _     -> return ()
+       c <- getLine
+       case c of
+          ';':_ -> putChar '\n' >> displaySolutions ss
+          _     -> return ()
 
 {- The main function that runs the program -}
 main :: IO ()
