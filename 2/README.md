@@ -1,4 +1,4 @@
-== Assignment 2 ==
+# ALP - Assignment 2
 A prolog interpreter written in Haskell
 
 ## Required software
