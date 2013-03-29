@@ -16,7 +16,8 @@ data Value = Fun Predicate
 instance Show Value where
     show (Fun ("nil", [])) = "[]"
     show (Fun ("cons", [x, Fun ("nil", [])])) = "[" ++ show x ++ "]"
-    show (Fun ("cons", [x,xs])) = let (_:s) = show xs in "[" ++ show x ++ "," ++ s
+    show (Fun ("cons", [x, xs@(Fun _)])) = let (_:s) = show xs in "[" ++ show x ++ "," ++ s
+    show (Fun ("cons", [x, v])) = "[" ++ show x ++ "|" ++ show v ++ "]"
     show (Fun (f, [])) = f
     show (Fun (f, vs)) = f ++ "(" ++ intercalate "," (map show vs) ++ ")"
     show (Var i) = i
