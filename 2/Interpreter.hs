@@ -54,23 +54,6 @@ solve p env (g:gs)           = do v <- try (match g gs env p p)
                                     Left (CutExn es) -> es
                                     Right es         -> return $ es
 
-printEnv :: Env -> IO ()
-printEnv (_, []) = putStr "yes "
-printEnv (_, ss) =
-    putStr $ intercalate ", " (map (\(i, v) -> i ++ " = " ++ show v) ss) ++ " "
-    
-simplifyEnv :: Env -> Env
-simplifyEnv (n, ss) = (n, simplifyEnv' ss)
-    where simplifyEnv' [] = []
-          simplifyEnv' (('#':_, v):ss') = simplifyEnv' ss'
-          simplifyEnv' ((i, v):ss') = let v' = simplifyValue v
-                                      in if v /= v'
-                                         then simplifyEnv' ((i, v'):ss')
-                                         else (i, v') : simplifyEnv' ss'
-          simplifyValue (Fun (i, vs)) = Fun (i, map simplifyValue vs)
-          simplifyValue (Var (x@('#':_))) = fromJust $ lookup x ss
-          simplifyValue v = v                  
-
 match :: Value -> [Value] -> Env -> [Clause] -> Program -> IO [Env]
 match g gs (env) (Clause l r : cs) p | trace ("match " ++ show g ++ " - " ++ show l ++ " - (" ++ show env ++ ")") False = undefined
 match _ _ _ [] _      = return []
@@ -116,9 +99,29 @@ processQuery cs = do putStr "?- "
                      let query = parseQuery qs
                      case query of
                         Nothing -> putStrLn "Syntax error." >> processQuery cs
-                        Just q  -> do sols <- solve cs emptyEnv [q]
+                        Just q  -> do sols <- solve cs emptyEnv q
                                       displaySolutions sols
 
+
+printEnv :: Env -> IO ()
+printEnv (_, []) = putStr "yes "
+printEnv (_, ss) =
+    putStr $ intercalate ", " (map (\(i, v) -> i ++ " = " ++ show v) ss) ++ " "
+    
+simplifyEnv :: Env -> Env
+simplifyEnv (n, ss) = (n, simplifyEnv' ss)
+    where simplifyEnv' [] = []
+          simplifyEnv' (('#':_, v):ss') = simplifyEnv' ss'
+          simplifyEnv' ((i, v):ss') = let v' = simplifyValue v
+                                      in if v /= v'
+                                         then simplifyEnv' ((i, v'):ss')
+                                         else (i, v') : simplifyEnv' ss'
+          simplifyValue (Fun (i, vs)) = Fun (i, map simplifyValue vs)
+          simplifyValue (Var (x@('#':_))) = case lookup x ss of
+                                                Just v -> v
+                                                Nothing -> Var x
+          simplifyValue v = v                  
+                                      
 displaySolutions :: [Env] -> IO ()
 displaySolutions [] = putStrLn "no"
 displaySolutions (s:ss) =

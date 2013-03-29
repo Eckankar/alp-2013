@@ -35,11 +35,11 @@ sstring s = skipSpaces >> string s
 parenthesized :: ReadP a -> ReadP a
 parenthesized = between (schar '(') (schar ')')
 
-query :: ReadP Value
-query = do v <- value
+query :: ReadP [Value]
+query = do vs <- sepBy1 value (schar ',')
            skipSpaces
            eof
-           return v
+           return vs
 
 program :: ReadP Program
 program = do cs <- many1 clause
@@ -107,7 +107,7 @@ listInner = return ("nil", [])
         <|> do h <- value
                return ("cons", [h, Fun ("nil", [])])
 
-parseQuery :: String -> Maybe Value
+parseQuery :: String -> Maybe [Value]
 parseQuery s = case readP_to_S query s of
                     [(v,"")] -> Just v
                     _        -> Nothing
