@@ -1,0 +1,141 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath,amssymb,amsfonts}
+
+\title{Advanced Language Processing - Assignment 2}
+\author{Sebastian Paaske Tørholm}
+
+\usepackage{hyperref}
+% Format function name and link to it on Hoogle
+\newcommand{\hoogle}[1]{\href{http://www.haskell.org/hoogle/?hoogle=#1}{\texttt{#1}}}
+
+\begin{document}
+\maketitle
+
+\section{Implementation}
+
+I chose to do my implementation in Haskell, primarily due to easy access to
+parser combinators, ADTs and pattern matching.
+
+\subsection{Syntax tree}
+
+The syntax tree is represented as an ADT, which can be found in
+\texttt{Prolog.hs}. A program is represented as a sequence of clauses, each
+of which have a head and list of values that comprise the body. The values
+are comprised of predicates, variables, negation as failure, cut, the special
+predicate \texttt{fail} and a unification of two variables.
+
+While negation of failure is stored in the syntax tree initially, it is later
+rewritten to the form described on page 138 of the book.
+
+\subsection{Parser}
+
+For parsing, I use \hoogle{ReadP}. The parser is a fairly straight forward
+parser combinator based parser. Most of the parser is rather straight-forward,
+so I won't go too much into details on it.
+
+The \texttt{list} parser performs desugaring of list syntax directly at
+parse-time.
+
+I've chosen to allow arbitrary whitespace between tokens, to provide some freedom for formatting.
+
+The \texttt{Parser} module provides three functions: 
+
+\begin{description}
+    \item[\texttt{parseFile}] Parses the contents of a file into a syntax tree.
+    \item[\texttt{parseString}] Parses the contents of a string into a syntax tree.
+    \item[\texttt{parseQuery}] Parses the contents of a string into a list of goals.
+\end{description}
+
+Any parse errors lead to an undescribed failure result, due to the nature of
+\hoogle{ReadP}.
+
+No formalized testing have been done on the parser, however all test programs
+in the \texttt{programs/} folder have been manually verified to be parsed
+correctly.
+
+\section{Prolog}
+The implementation follows the implementation suggested in the book rather closely.
+
+Rather than storing bindings on a modifiable ``trail'', the functions pass
+around an environment consisting of the currently active substitutions, as
+well as an identifier used for generating unique identifiers for renaming.
+
+Additionally, instead of solve directly printing the solutions when found,
+I return them in a list, to simplify interaction with the user.
+
+Generated variables and predicates are marked by having a \texttt{\#} as the
+first character in their identifier. This allows me to simplify them out of
+the environment, when it is to be showed to the user. The simplification step
+removes all temporary variables from the environment, as well as expands
+bindings of non-temporary variables as much as possible.
+
+Negation as failure is converted to cuts in the function \texttt{nafToCut}.
+This function traverses all clauses, and when a negation as failure is found, it
+performs the following rewrite:
+
+\begin{verbatim}
+  p(X,Y,Z) :- ..., \+ q(X,Z), ... .
+\end{verbatim}
+
+becomes
+
+\begin{verbatim}
+  p(X,Y,Z) :- ..., #naf_0(X,Y,Z), ... .
+
+  #naf_0(X,Y,Z) :- q(X,Z), !, fail.
+  #naf_0(X,Y,Z).
+\end{verbatim}
+
+Note, however, that negation as failure and cut does not work as intended. I
+believe that this is due to the implementation of cut as described in the book
+being incorrect.
+
+When a cut is encountered in a clause, backtracking is prevented beyond that point
+in that clause. This can be seen in the example program \texttt{simple\_cut.pl}, by
+performing the query \texttt{a(X,Y)}.
+
+What the implementation outlined in the book does not do, however, is prevent
+backtracking from continuing on other clauses with the same head. This means,
+in practice, that negation as failure will never fail. This can be seen in
+\texttt{burger\_naf.pl} or \texttt{burger\_cut.pl}, by evaluating the query
+\texttt{enjoys(vincent, X)}, which incorrectly returns \texttt{X = b} as one
+of the solutions.
+
+In order to handle this, some kind of grouping would have to be done on the
+clauses, grouping clauses with the same identifier on the heads. Due to time
+constraints, I haven't found a good solution for this. If this problem is
+corrected, both cuts and negation as failure should work as expected.
+
+The \texttt{Interpreter} module provides one value, \texttt{main}, which when
+run executes the program. The easiest way to execute the program is to simply
+execute the command
+
+\begin{verbatim}
+    runghc ./Interpreter.hs <programs>
+\end{verbatim}
+
+The interpreter accepts any number of programs as input\footnote{Yes, even 0,
+though that'll give a rather boring interactive session.}. If programs are
+malformed, no errors are shown in the interpreter session, and the program is
+silently ignored.
+
+\section{Example programs}
+Three example programs are attached in the \texttt{programs} folder:
+
+\begin{description}
+    \item[\texttt{simple.pl}] A very simple dictionary of names.
+    \item[\texttt{append.pl}] The append program shown on the slides.
+    \item[\texttt{unify.pl}] A program testing unification of variables.
+    \item[\texttt{simple\_cut.pl}] A simple program using cuts.
+    \item[\texttt{burger\_naf.pl}] A simple program using negation as failure. (Doesn't work.)
+    \item[\texttt{burger\_cut.pl}] The same program, rewritten to use cuts. (Doesn't work.)
+    \item[\texttt{8queens.pl}] The 8-queens program. (Doesn't work.) 
+\end{description}
+
+\end{document}
+
